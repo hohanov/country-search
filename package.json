@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && node scripts/copy-static.mjs",
         "deploy": "npm run build && npx gh-pages -d ./dist",
         "format:check": "prettier . --check",
         "format": "prettier . --write",
@@ -34,6 +34,7 @@
         "typescript": "^5.9.3"
     },
     "dependencies": {
+        "bootstrap": "^5.3.8",
         "jest": "^30.5.2"
     }
 }
