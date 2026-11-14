@@ -1,8 +1,7 @@
 import { debounce, type DebouncedFunction } from './debounce.js';
+import { CountrySearchService } from './country-search-service.js';
 import { mapCountryResponse, type CountryDetails } from './map-country-response.js';
 import { classifySearchError } from './search-error.js';
-import { searchCountries } from './search-countries.js';
-import { createTimedSignal } from './search-signal.js';
 
 export type SearchState =
     | { status: 'idle' }
@@ -15,12 +14,15 @@ export class SearchController {
     private query = '';
     private activeController: AbortController | null = null;
     private readonly debouncedSearch: DebouncedFunction<[string]>;
+    private readonly searchService: CountrySearchService;
 
     constructor(
         private readonly onStateChange: (state: SearchState) => void,
         debounceDelay = 300,
-        private readonly timeoutMs = 10000
+        timeoutMs = 10000,
+        private readonly onSearch?: (query: string) => void
     ) {
+        this.searchService = new CountrySearchService(timeoutMs);
         this.debouncedSearch = debounce((query: string) => {
             void this.executeSearch(query);
         }, debounceDelay);
@@ -37,6 +39,12 @@ export class SearchController {
 
         this.onStateChange({ status: 'loading', query: this.query });
         this.debouncedSearch(this.query);
+    }
+
+    searchQuery(query: string): void {
+        this.query = query.trim();
+        this.cancelPendingSearch();
+        this.searchNow();
     }
 
     searchNow(): void {
@@ -77,10 +85,10 @@ export class SearchController {
     private async executeSearch(query: string): Promise<void> {
         const controller = new AbortController();
         this.activeController = controller;
-        const signal = createTimedSignal(controller.signal, this.timeoutMs);
 
         try {
-            const response = await searchCountries(query, signal);
+            this.onSearch?.(query);
+            const response = await this.searchService.search(query, controller.signal);
 
             if (!this.isCurrentSearch(query, controller)) {
                 return;

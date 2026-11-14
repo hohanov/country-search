@@ -1,4 +1,5 @@
 import { SearchController, type SearchState } from './search-controller.js';
+import { SearchHistory } from './search-history.js';
 import type { CountryDetails } from './map-country-response.js';
 
 document.body.classList.add('overflow-y-scroll');
@@ -136,6 +137,23 @@ function renderState(
     container.append(grid);
 }
 
+function renderHistory(container: HTMLElement, queries: string[], onSelect: (query: string) => void): void {
+    container.replaceChildren();
+    if (queries.length === 0) {
+        return;
+    }
+
+    container.append(createElement('h2', 'h6 text-body-secondary mb-2', 'Недавние запросы'));
+    const list = createElement('div', 'd-flex flex-wrap justify-content-center gap-2');
+    for (const query of queries) {
+        const button = createElement('button', 'btn btn-sm btn-outline-secondary', query);
+        button.type = 'button';
+        button.addEventListener('click', () => onSelect(query));
+        list.append(button);
+    }
+    container.append(list);
+}
+
 const app = createElement('main', 'container py-5');
 const header = createElement('header', 'text-center mb-4');
 header.append(
@@ -158,16 +176,49 @@ header.append(form);
 
 const results = createElement('section', 'mt-4');
 results.setAttribute('aria-live', 'polite');
+const historyContainer = createElement('section', 'mt-4');
+historyContainer.setAttribute('aria-label', 'История поиска');
 const details = createElement('div', '');
-app.append(header, results, details);
+app.append(header, historyContainer, results, details);
 document.body.append(app);
 
-const controller = new SearchController((state) => renderState(results, details, state, controller));
-input.addEventListener('input', () => controller.setQuery(input.value));
+const history = new SearchHistory(window.localStorage);
+let previousInputQuery = input.value.trim();
+const selectHistoryQuery = (query: string): void => {
+    input.value = query;
+    previousInputQuery = query;
+    controller.searchQuery(query);
+};
+const refreshHistory = (): void => {
+    renderHistory(historyContainer, history.getAll(), selectHistoryQuery);
+};
+const controller = new SearchController(
+    (state) => renderState(results, details, state, controller),
+    300,
+    10000,
+    (query) => {
+        history.add(query);
+        refreshHistory();
+    }
+);
+input.addEventListener('input', () => {
+    const query = input.value.trim();
+    if (
+        previousInputQuery.length > 0 &&
+        query.length > previousInputQuery.length &&
+        query.startsWith(previousInputQuery)
+    ) {
+        history.remove(previousInputQuery);
+        refreshHistory();
+    }
+    previousInputQuery = query;
+    controller.setQuery(input.value);
+});
 form.addEventListener('submit', (event) => {
     event.preventDefault();
     controller.searchNow();
 });
 window.addEventListener('pagehide', () => controller.dispose(), { once: true });
 
+refreshHistory();
 renderState(results, details, { status: 'idle' }, controller);
