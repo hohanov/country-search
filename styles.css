@@ -1,0 +1,17 @@
+.country-card {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.country-card-content {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.country-flag {
+    width: 3.5rem;
+    height: 2.5rem;
+    flex: 0 0 3.5rem;
+    object-fit: contain;
+}
