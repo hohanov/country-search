@@ -5,4 +5,4 @@ const deploymentHtml = html.replaceAll('./dist/', './');
 await writeFile('dist/index.html', deploymentHtml);
 await copyFile('styles.css', 'dist/styles.css');
 await copyFile('node_modules/bootstrap/dist/css/bootstrap.min.css', 'dist/bootstrap.min.css');
-// await copyFile('DESIGN.md', 'dist/DESIGN.md');
+await copyFile('DESIGN.md', 'dist/DESIGN.md');
